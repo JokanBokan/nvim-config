@@ -1,6 +1,6 @@
 ﻿# nvim-config
 
-My personal Neovim configuration tailored for C, C++, and Rust development.
+My personal Neovide configuration for writing code in C, C++, and Rust.
 
 ## Plugins
 
