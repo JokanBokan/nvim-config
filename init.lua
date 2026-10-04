@@ -27,6 +27,9 @@ vim.opt.splitbelow = true
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
 vim.opt.clipboard = "unnamedplus"
+if vim.g.neovide then
+  vim.o.guifont = "JetBrainsMonoNL NF"
+end
 
 require("lazy").setup({
   {
