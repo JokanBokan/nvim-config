@@ -1,6 +1,6 @@
 ﻿# nvim-config
 
-My personal Neovide configuration for writing code in C, C++, and Rust.
+My personal neovim configuration for writing code in C, C++, and Rust.
 
 ## Font
 JetBrainsMonoNL NF (you have to install it manually or else it wont work)
