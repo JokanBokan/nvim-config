@@ -27,6 +27,8 @@ vim.opt.splitbelow = true
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
 vim.opt.clipboard = "unnamedplus"
+vim.opt.mouse = ""
+vim.g.neovide_hide_mouse_when_typing = true
 if vim.g.neovide then
   vim.o.guifont = "JetBrainsMonoNL NF"
 end
@@ -97,7 +99,6 @@ require("lazy").setup({
     "nvim-tree/nvim-tree.lua",
     dependencies = { "nvim-tree/nvim-web-devicons" },
     config = function()
-      -- Zaštita od SessionWritePre greške na Windows/Neovim verzijama
       local orig_autocmd = vim.api.nvim_create_autocmd
       vim.api.nvim_create_autocmd = function(event, opts)
         local safe_event = event
@@ -284,6 +285,7 @@ require("lazy").setup({
       "L3MON4D3/LuaSnip",
       "saadparwaiz1/cmp_luasnip",
       "rafamadriz/friendly-snippets",
+      "p00f/clangd_extensions.nvim",
     },
     config = function()
       local cmp = require("cmp")
@@ -310,6 +312,18 @@ require("lazy").setup({
           { name = "buffer" },
           { name = "path" },
         }),
+        sorting = {
+          comparators = {
+            cmp.config.compare.offset,
+            cmp.config.compare.exact,
+            cmp.config.compare.recently_used,
+            require("clangd_extensions.cmp_scores"),
+            cmp.config.compare.kind,
+            cmp.config.compare.sort_text,
+            cmp.config.compare.length,
+            cmp.config.compare.order,
+          },
+        },
       })
 
       local cmp_autopairs = require("nvim-autopairs.completion.cmp")
@@ -317,6 +331,25 @@ require("lazy").setup({
 
       vim.keymap.set({ "i", "s" }, "<C-k>", function() luasnip.jump(1) end, { silent = true })
       vim.keymap.set({ "i", "s" }, "<C-j>", function() luasnip.jump(-1) end, { silent = true })
+    end,
+  },
+
+  {
+    "p00f/clangd_extensions.nvim",
+    config = function()
+      require("clangd_extensions").setup({})
+
+      vim.api.nvim_create_autocmd("FileType", {
+        pattern = { "c", "cpp" },
+        callback = function(args)
+          local opts = { buffer = args.buf }
+          vim.keymap.set("n", "<leader>ch", "<cmd>ClangdSwitchSourceHeader<CR>", vim.tbl_extend("force", opts, { desc = "Switch source/header" }))
+          vim.keymap.set("n", "<leader>ct", "<cmd>ClangdTypeHierarchy<CR>", vim.tbl_extend("force", opts, { desc = "Type hierarchy" }))
+          vim.keymap.set("n", "<leader>ci", "<cmd>ClangdSymbolInfo<CR>", vim.tbl_extend("force", opts, { desc = "Symbol info" }))
+          vim.keymap.set({ "n", "v" }, "<leader>cx", ":ClangdAST<CR>", vim.tbl_extend("force", opts, { desc = "Show AST" }))
+          vim.keymap.set("n", "<leader>cm", "<cmd>ClangdMemoryUsage<CR>", vim.tbl_extend("force", opts, { desc = "clangd memory usage" }))
+        end,
+      })
     end,
   },
 })
@@ -331,6 +364,9 @@ local on_attach = function(_, bufnr)
   vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
   vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
   vim.keymap.set("n", "<leader>f", function() vim.lsp.buf.format({ async = true }) end, opts)
+
+  -- Built-in inlay hints (parameter names, deduced types)
+  vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
 end
 
 vim.lsp.config("clangd", {
