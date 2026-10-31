@@ -19,7 +19,7 @@ vim.opt.expandtab = true
 vim.opt.smartindent = true
 vim.opt.wrap = false
 vim.opt.termguicolors = true
-vim.opt.signcolumn = "yes"
+vim.opt.signcolumn = "auto"   -- only shows up when there's a git/diagnostic sign
 vim.opt.scrolloff = 8
 vim.opt.updatetime = 250
 vim.opt.splitright = true
@@ -27,43 +27,51 @@ vim.opt.splitbelow = true
 vim.opt.ignorecase = true
 vim.opt.smartcase = true
 vim.opt.clipboard = "unnamedplus"
-vim.opt.mouse = ""
-vim.g.neovide_hide_mouse_when_typing = true
+
+-- Tsoding-style minimal UI
+vim.opt.cursorline = false
+vim.opt.showtabline = 0       -- no tab/buffer line
+vim.opt.laststatus = 2        -- plain built-in statusline
+vim.opt.showmode = true
+vim.opt.fillchars = { eob = " " } -- hide the ~ on empty lines
+
 if vim.g.neovide then
-  vim.o.guifont = "JetBrainsMonoNL NF"
+  -- Iosevka first, falls back to your JetBrains font if Iosevka isn't installed
+  vim.o.guifont = "Iosevka,JetBrainsMonoNL Nerd Font:h17"
+  vim.g.neovide_cursor_animation_length = 0
+  vim.g.neovide_cursor_trail_size = 0
+  vim.g.neovide_cursor_vfx_mode = ""
+  vim.g.neovide_scroll_animation_length = 0
+  vim.g.neovide_position_animation_length = 0
+  vim.g.neovide_padding_top = 0
+  vim.g.neovide_padding_bottom = 0
+  vim.g.neovide_padding_left = 0
+  vim.g.neovide_padding_right = 0
 end
 
 require("lazy").setup({
   {
-    "rebelot/kanagawa.nvim",
+    "blazkowolf/gruber-darker.nvim",
     lazy = false,
     priority = 1000,
     config = function()
-      require("kanagawa").setup({
-        compile = false,
+      require("gruber-darker").setup({
+        bold = false,
+        invert = {
+          signs = false,
+          tabline = false,
+          visual = false,
+        },
+        italic = {
+          strings = false,
+          comments = false,
+          operators = false,
+          folds = false,
+        },
         undercurl = true,
-        commentStyle = { italic = true },
-        functionStyle = {},
-        keywordStyle = { italic = true },
-        statementStyle = { bold = true },
-        typeStyle = {},
-        transparent = false,
-        dimInactive = false,
-        terminalColors = true,
-        colors = {
-          palette = {},
-          theme = { wave = {}, lotus = {}, dragon = {}, all = {} },
-        },
-        overrides = function(colors)
-          return {}
-        end,
-        theme = "dragon",
-        background = {
-          dark = "dragon",
-          light = "lotus",
-        },
+        underline = true,
       })
-      vim.cmd("colorscheme kanagawa")
+      vim.cmd.colorscheme("gruber-darker")
     end,
   },
 
@@ -72,10 +80,10 @@ require("lazy").setup({
     config = function()
       local notify = require("notify")
       notify.setup({
-        background_colour = "#000000",
-        stages = "fade_in_slide_out",
+        background_colour = "#181818",
+        stages = "static",
         timeout = 3000,
-        render = "default",
+        render = "minimal",
       })
       vim.notify = notify
 
@@ -95,10 +103,10 @@ require("lazy").setup({
     end,
   },
 
-{
+  {
     "nvim-tree/nvim-tree.lua",
-    dependencies = { "nvim-tree/nvim-web-devicons" },
     config = function()
+      -- Zaštita od SessionWritePre greške na Windows/Neovim verzijama
       local orig_autocmd = vim.api.nvim_create_autocmd
       vim.api.nvim_create_autocmd = function(event, opts)
         local safe_event = event
@@ -115,11 +123,15 @@ require("lazy").setup({
         return orig_autocmd(safe_event, opts)
       end
 
+      -- Plain, dired-like tree: no icons, only opened when you ask for it
       require("nvim-tree").setup({
         view = { width = 32 },
         renderer = {
           group_empty = true,
-          icons = { show = { git = true, folder = true, file = true, folder_arrow = true } },
+          icons = {
+            show = { git = false, folder = false, file = false, folder_arrow = true },
+            glyphs = { folder = { arrow_closed = "+", arrow_open = "-" } },
+          },
         },
         filters = { dotfiles = false },
         git = { enable = true },
@@ -128,60 +140,6 @@ require("lazy").setup({
       vim.api.nvim_create_autocmd = orig_autocmd
 
       vim.keymap.set("n", "<leader>e", ":NvimTreeToggle<CR>", { desc = "Toggle file tree" })
-      vim.api.nvim_create_autocmd("VimEnter", {
-        callback = function()
-          if vim.fn.argc() == 0 then
-            require("nvim-tree.api").tree.open()
-          end
-        end,
-      })
-    end,
-  },
-
-  {
-    "akinsho/bufferline.nvim",
-    version = "*",
-    dependencies = { "nvim-tree/nvim-web-devicons" },
-    config = function()
-      require("bufferline").setup({
-        options = {
-          numbers = "ordinal",
-          diagnostics = "nvim_lsp",
-          offsets = {
-            { filetype = "NvimTree", text = "NvimTree", highlight = "Directory", separator = true },
-          },
-          show_buffer_close_icons = true,
-          show_close_icon = false,
-          separator_style = "slant",
-        },
-      })
-      vim.keymap.set("n", "<S-l>", ":BufferLineCycleNext<CR>")
-      vim.keymap.set("n", "<S-h>", ":BufferLineCyclePrev<CR>")
-    end,
-  },
-
-  {
-    "nvim-lualine/lualine.nvim",
-    dependencies = { "nvim-tree/nvim-web-devicons" },
-    config = function()
-      require("lualine").setup({
-        options = { theme = "kanagawa", globalstatus = true },
-        sections = {
-          lualine_a = { "mode" },
-          lualine_b = { "branch", "diff", "diagnostics" },
-          lualine_c = { "filename" },
-          lualine_x = { "filetype" },
-          lualine_y = { "progress" },
-          lualine_z = { "location" },
-        },
-      })
-    end,
-  },
-
-  {
-    "karb94/neoscroll.nvim",
-    config = function()
-      require("neoscroll").setup()
     end,
   },
 
@@ -214,14 +172,6 @@ require("lazy").setup({
     "windwp/nvim-autopairs",
     config = function()
       require("nvim-autopairs").setup()
-    end,
-  },
-
-  {
-    "lukas-reineke/indent-blankline.nvim",
-    main = "ibl",
-    config = function()
-      require("ibl").setup()
     end,
   },
 
@@ -285,7 +235,6 @@ require("lazy").setup({
       "L3MON4D3/LuaSnip",
       "saadparwaiz1/cmp_luasnip",
       "rafamadriz/friendly-snippets",
-      "p00f/clangd_extensions.nvim",
     },
     config = function()
       local cmp = require("cmp")
@@ -312,18 +261,6 @@ require("lazy").setup({
           { name = "buffer" },
           { name = "path" },
         }),
-        sorting = {
-          comparators = {
-            cmp.config.compare.offset,
-            cmp.config.compare.exact,
-            cmp.config.compare.recently_used,
-            require("clangd_extensions.cmp_scores"),
-            cmp.config.compare.kind,
-            cmp.config.compare.sort_text,
-            cmp.config.compare.length,
-            cmp.config.compare.order,
-          },
-        },
       })
 
       local cmp_autopairs = require("nvim-autopairs.completion.cmp")
@@ -333,26 +270,11 @@ require("lazy").setup({
       vim.keymap.set({ "i", "s" }, "<C-j>", function() luasnip.jump(-1) end, { silent = true })
     end,
   },
-
-  {
-    "p00f/clangd_extensions.nvim",
-    config = function()
-      require("clangd_extensions").setup({})
-
-      vim.api.nvim_create_autocmd("FileType", {
-        pattern = { "c", "cpp" },
-        callback = function(args)
-          local opts = { buffer = args.buf }
-          vim.keymap.set("n", "<leader>ch", "<cmd>ClangdSwitchSourceHeader<CR>", vim.tbl_extend("force", opts, { desc = "Switch source/header" }))
-          vim.keymap.set("n", "<leader>ct", "<cmd>ClangdTypeHierarchy<CR>", vim.tbl_extend("force", opts, { desc = "Type hierarchy" }))
-          vim.keymap.set("n", "<leader>ci", "<cmd>ClangdSymbolInfo<CR>", vim.tbl_extend("force", opts, { desc = "Symbol info" }))
-          vim.keymap.set({ "n", "v" }, "<leader>cx", ":ClangdAST<CR>", vim.tbl_extend("force", opts, { desc = "Show AST" }))
-          vim.keymap.set("n", "<leader>cm", "<cmd>ClangdMemoryUsage<CR>", vim.tbl_extend("force", opts, { desc = "clangd memory usage" }))
-        end,
-      })
-    end,
-  },
 })
+
+-- Buffer switching (replaces the bufferline mappings)
+vim.keymap.set("n", "<S-l>", ":bnext<CR>", { silent = true })
+vim.keymap.set("n", "<S-h>", ":bprevious<CR>", { silent = true })
 
 local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
@@ -364,9 +286,6 @@ local on_attach = function(_, bufnr)
   vim.keymap.set("n", "<leader>rn", vim.lsp.buf.rename, opts)
   vim.keymap.set("n", "<leader>ca", vim.lsp.buf.code_action, opts)
   vim.keymap.set("n", "<leader>f", function() vim.lsp.buf.format({ async = true }) end, opts)
-
-  -- Built-in inlay hints (parameter names, deduced types)
-  vim.lsp.inlay_hint.enable(true, { bufnr = bufnr })
 end
 
 vim.lsp.config("clangd", {
@@ -420,6 +339,14 @@ vim.lsp.config("lua_ls", {
   },
 })
 vim.lsp.enable("lua_ls")
+
+-- Plain diagnostics: no virtual text noise, just underlines + signs
+vim.diagnostic.config({
+  virtual_text = false,
+  underline = true,
+  signs = true,
+  severity_sort = true,
+})
 
 vim.api.nvim_create_autocmd("FileType", {
   pattern = { "c", "cpp", "rust", "lua" },
